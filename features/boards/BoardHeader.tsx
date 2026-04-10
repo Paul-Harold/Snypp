@@ -103,14 +103,73 @@ export default function BoardHeader({
           {canManageBoard && (
             <div className={`flex items-center gap-4 p-2 px-4 rounded-xl border hidden md:flex ${glassPanelClass}`}>
               <div className="relative">
+                {/* The clickable avatar stack */}
                 <div className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform" onClick={() => { setShowTeamMenu(!showTeamMenu); setShowThemeMenu(false); setShowFilterMenu(false); }}>
                   {members.map(m => (
-                    <div key={m.user_id} className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs border-2 border-white font-bold">
-                      {m.profiles?.email.charAt(0).toUpperCase()}
+                    <div 
+                      key={m.user_id} 
+                      className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs border-2 border-white font-bold overflow-hidden shadow-sm shrink-0"
+                      title={m.profiles?.email}
+                    >
+                      {m.profiles?.avatar_url ? (
+                        <img src={m.profiles.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        m.profiles?.email?.charAt(0).toUpperCase() || '?'
+                      )}
                     </div>
                   ))}
                 </div>
-                {/* Team Dropdown omitted for brevity but goes here */}
+
+                {/* THE MISSING TEAM MENU IS BACK */}
+                {showTeamMenu && (
+                  <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 text-slate-800 animate-in fade-in zoom-in-95">
+                    <div className="px-3 py-2 border-b border-slate-100 mb-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Team Members ({members.length})</span>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto flex flex-col gap-1">
+                      {members.map(m => (
+                        <div key={m.user_id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                          <div className="flex items-center gap-2 truncate">
+                            <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold overflow-hidden shrink-0 border border-slate-200">
+                              {m.profiles?.avatar_url ? (
+                                <img src={m.profiles.avatar_url} className="w-full h-full object-cover" />
+                              ) : (
+                                m.profiles?.email?.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <span className="text-sm font-bold text-slate-700 truncate max-w-[100px]" title={m.profiles?.email}>
+                              {m.profiles?.email?.split('@')[0]}
+                            </span>
+                          </div>
+                          
+                          {/* Role Selection & Removal */}
+                          {m.user_id !== currentUserId ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <select 
+                                value={m.role} 
+                                onChange={(e) => handleUpdateMemberRole(m.user_id, e.target.value)}
+                                className="text-[10px] font-bold bg-slate-100 text-slate-600 rounded-md px-1.5 py-1.5 outline-none cursor-pointer hover:bg-slate-200 transition-colors border border-transparent hover:border-slate-300"
+                              >
+                                <option value="OWNER">OWNER</option>
+                                <option value="MEMBER">MEMBER</option>
+                                <option value="VIEWER">VIEWER</option>
+                              </select>
+                              <button onClick={() => handleRemoveMember(m.user_id)} className="text-slate-300 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors" title="Remove Member">
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200 rounded-md px-2 py-1.5 shrink-0">
+                              {m.role} (YOU)
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* END TEAM MENU */}
+
               </div>
               
               <div className={`flex gap-2 border-l pl-4 ${isDarkBg ? 'border-white/20' : 'border-slate-200'}`}>
