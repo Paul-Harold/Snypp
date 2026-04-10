@@ -9,37 +9,32 @@ export default function AuthForm() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // NEW: Confirm password state
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // NEW: Granular error states for better UX
   const [errorMessage, setErrorMessage] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   
   const router = useRouter();
 
-  // --- NEW: Client-Side Validation Logic ---
   const validateForm = () => {
     let isValid = true;
     setEmailError('');
     setPasswordError('');
     setErrorMessage('');
 
-    // 1. Email Regex Check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setEmailError('Please enter a valid email address.');
       isValid = false;
     }
 
-    // 2. Password Length Check (Supabase requires 6+)
     if (password.length < 6) {
       setPasswordError('Password must be at least 6 characters.');
       isValid = false;
     }
 
-    // 3. Confirm Password Check (Only on Sign Up)
     if (isSignUp && password !== confirmPassword) {
       setPasswordError('Passwords do not match.');
       isValid = false;
@@ -51,7 +46,6 @@ export default function AuthForm() {
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Stop immediately if validation fails
     if (!validateForm()) return; 
 
     setIsLoading(true);
@@ -132,15 +126,18 @@ export default function AuthForm() {
       <form onSubmit={handleEmailAuth} className="flex flex-col gap-4" noValidate>
         {/* EMAIL INPUT */}
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1 ml-1 uppercase tracking-wider">Email</label>
+          <label htmlFor="email" className="block text-xs font-bold text-slate-700 mb-1 ml-1 uppercase tracking-wider">Email</label>
           <input
+            id="email"
+            name="email"
             type="email"
+            autoComplete="email"
             placeholder="you@example.com"
             className={`w-full px-4 py-3 bg-slate-50 border ${emailError ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-blue-500'} rounded-xl outline-none focus:ring-2 focus:bg-white transition-all font-medium placeholder-slate-400 text-slate-900`}
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              if (emailError) setEmailError(''); // Clear error on typing
+              if (emailError) setEmailError('');
             }}
           />
           {emailError && <p className="text-red-500 text-xs font-bold mt-1 ml-1">{emailError}</p>}
@@ -148,9 +145,12 @@ export default function AuthForm() {
         
         {/* PASSWORD INPUT */}
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1 ml-1 uppercase tracking-wider">Password</label>
+          <label htmlFor="password" className="block text-xs font-bold text-slate-700 mb-1 ml-1 uppercase tracking-wider">Password</label>
           <input
+            id="password"
+            name="password"
             type="password"
+            autoComplete={isSignUp ? "new-password" : "current-password"}
             placeholder="••••••••"
             className={`w-full px-4 py-3 bg-slate-50 border ${passwordError ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-blue-500'} rounded-xl outline-none focus:ring-2 focus:bg-white transition-all font-medium placeholder-slate-400 text-slate-900`}
             value={password}
@@ -159,16 +159,18 @@ export default function AuthForm() {
               if (passwordError) setPasswordError('');
             }}
           />
-          {/* Only show password error here if it's not a mismatch error */}
           {passwordError && passwordError !== 'Passwords do not match.' && <p className="text-red-500 text-xs font-bold mt-1 ml-1">{passwordError}</p>}
         </div>
 
         {/* CONFIRM PASSWORD (ONLY ON SIGN UP) */}
         {isSignUp && (
           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-            <label className="block text-xs font-bold text-slate-700 mb-1 ml-1 uppercase tracking-wider">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="block text-xs font-bold text-slate-700 mb-1 ml-1 uppercase tracking-wider">Confirm Password</label>
             <input
+              id="confirmPassword"
+              name="confirmPassword"
               type="password"
+              autoComplete="new-password"
               placeholder="••••••••"
               className={`w-full px-4 py-3 bg-slate-50 border ${passwordError === 'Passwords do not match.' ? 'border-red-400 focus:ring-red-500' : 'border-slate-200 focus:ring-blue-500'} rounded-xl outline-none focus:ring-2 focus:bg-white transition-all font-medium placeholder-slate-400 text-slate-900`}
               value={confirmPassword}
