@@ -32,14 +32,14 @@ export default function Home() {
         </div>
 
         <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 max-w-4xl leading-tight mb-8 drop-shadow-sm">
-          The project management tool that actually{' '}
+          Organize everything{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-            moves fast.
+            in one place
           </span>
         </h1>
 
         <p className="text-xl text-slate-500 font-medium max-w-2xl mb-12 leading-relaxed">
-          Real-time collaboration, role-based access, and drag-and-drop workflows. Organize your team's chaos into beautiful, actionable boards in seconds.
+          Tasks, notes, ideas, snippets —everything stays clear, structured, and easy to manage.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4">
@@ -62,7 +62,7 @@ export default function Home() {
       <section id="features" className="bg-white border-t border-slate-100 py-24">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Everything you need to ship faster.</h2>
+            <h2 className="text-3xl font-extrabold text-slate-900 mb-4">One place for your workload, personal notes, ideas, and everything in between.</h2>
             <p className="text-slate-500 font-medium max-w-2xl mx-auto">No clutter, no steep learning curve. Just the tools your team needs to get work done.</p>
           </div>
 
@@ -78,9 +78,9 @@ export default function Home() {
               <p className="text-slate-500 font-medium">Strict Role-Based Access Control means viewers can only view, and only owners can manage the workspace.</p>
             </div>
             <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100">
-              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-2xl mb-6">🔔</div>
-              <h3 className="text-xl font-bold mb-2">Smart Notifications</h3>
-              <p className="text-slate-500 font-medium">Get instantly pinged when you are invited to a board, assigned a task, or when your card status changes.</p>
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-2xl mb-6">👥</div>
+              <h3 className="text-xl font-bold mb-2">Collaboration</h3>
+              <p className="text-slate-500 font-medium">Streamline your team workflow. Receive immediate alerts when invited to boards, assigned tasks, or when card statuses change.</p>
             </div>
           </div>
         </div>
