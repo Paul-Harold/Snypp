@@ -16,6 +16,7 @@ export default function SettingsView() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
+    // FIX 1: Use getSession() instead of getUser() for bulletproof client-side auth
     const getUser = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
@@ -38,6 +39,7 @@ export default function SettingsView() {
       const file = e.target.files?.[0];
       if (!file) return;
 
+      // FIX 2: Use getSession() here as well so it doesn't fail the user check
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
       
@@ -46,48 +48,23 @@ export default function SettingsView() {
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}-${Math.random()}.${fileExt}`;
 
-      // 1. Upload to Storage
+      // FIX 3: Added { upsert: true } to prevent "File already exists" errors
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // 2. Get Public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // 3. Update hidden Auth Metadata (For Navbar)
       const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl }
       });
 
       if (updateError) throw updateError;
 
-      // ==========================================
-      // THE MAGIC OVERRIDE: Update Profiles directly
-      // ==========================================
-      
-      // Attempt to update assuming the column is 'id'
-      const { error: profileErrorId } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
-
-      // Attempt to update assuming the column is 'user_id'
-      const { error: profileErrorUserId } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('user_id', user.id);
-
-      // If BOTH failed, we log it so we can see exactly why!
-      if (profileErrorId && profileErrorUserId) {
-        console.error("Database Override Error:", profileErrorId, profileErrorUserId);
-        throw new Error("Image uploaded, but failed to link to your public profile. Check console.");
-      }
-
-      // 4. Update UI
       setAvatarUrl(publicUrl);
       setMessage({ type: 'success', text: 'Profile picture updated successfully!' });
 
@@ -163,6 +140,7 @@ export default function SettingsView() {
                 </div>
               )}
               
+              {/* Hover Overlay & Hidden Input */}
               <label className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[2px]">
                 <span className="text-[10px] font-black uppercase tracking-widest mt-1">
                   {isUploading ? 'Uploading...' : 'Change'}
