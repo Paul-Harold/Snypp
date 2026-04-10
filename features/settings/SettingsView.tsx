@@ -16,11 +16,20 @@ export default function SettingsView() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
+    // FIX: Use getSession() instead of getUser() in client components 
+    // when using @supabase/ssr to reliably get metadata.
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("Session error:", error);
+        return;
+      }
+
+      const user = data.session?.user;
+      
       if (user) {
         setEmail(user.email || '');
-        // Load the avatar URL if it exists in the user's metadata
         if (user.user_metadata?.avatar_url) {
           setAvatarUrl(user.user_metadata.avatar_url);
         }
@@ -29,7 +38,6 @@ export default function SettingsView() {
     getUser();
   }, []);
 
-  // --- NEW: Handle Profile Picture Upload ---
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setMessage(null);
@@ -38,37 +46,36 @@ export default function SettingsView() {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
+      // FIX: Also use getSession() here to ensure we have the active user ID
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user;
+      
       if (!user) throw new Error("Authentication error. Please log in again.");
 
-      // 1. Create a unique file name
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}-${Math.random()}.${fileExt}`;
 
-      // 2. Upload to Supabase Storage (Bucket name: 'avatars')
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // 3. Get the public URL of the uploaded image
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // 4. Save the URL to the user's metadata
       const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl }
       });
 
       if (updateError) throw updateError;
 
-      // 5. Update UI
       setAvatarUrl(publicUrl);
       setMessage({ type: 'success', text: 'Profile picture updated successfully!' });
 
     } catch (error: any) {
+      console.error("Upload error:", error);
       setMessage({ type: 'error', text: error.message || 'Error uploading image.' });
     } finally {
       setIsUploading(false);
@@ -129,7 +136,6 @@ export default function SettingsView() {
           
           <div className="flex items-center gap-6">
             
-            {/* NEW: Clickable Avatar Upload */}
             <div className="relative group w-24 h-24 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-slate-100 border border-slate-200">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -139,7 +145,6 @@ export default function SettingsView() {
                 </div>
               )}
               
-              {/* Hover Overlay & Hidden Input */}
               <label className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[2px]">
                 <span className="text-[10px] font-black uppercase tracking-widest mt-1">
                   {isUploading ? 'Uploading...' : 'Change'}
