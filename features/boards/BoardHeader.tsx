@@ -104,11 +104,26 @@ export default function BoardHeader({
             <div className={`flex items-center gap-4 p-2 px-4 rounded-xl border hidden md:flex ${glassPanelClass}`}>
               <div className="relative">
                 <div className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform" onClick={() => { setShowTeamMenu(!showTeamMenu); setShowThemeMenu(false); setShowFilterMenu(false); }}>
+                  
+                  {/* UPDATED: Profile Picture Rendering */}
                   {members.map(m => (
-                    <div key={m.user_id} className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs border-2 border-white font-bold">
-                      {m.profiles?.email.charAt(0).toUpperCase()}
+                    <div 
+                      key={m.user_id} 
+                      className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs border-2 border-white font-bold overflow-hidden shadow-sm shrink-0"
+                      title={m.profiles?.email}
+                    >
+                      {m.profiles?.avatar_url ? (
+                        <img 
+                          src={m.profiles.avatar_url} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        m.profiles?.email?.charAt(0).toUpperCase() || '?'
+                      )}
                     </div>
                   ))}
+
                 </div>
                 {/* Team Dropdown omitted for brevity but goes here */}
               </div>
