@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabaseClient';
 import TaskModal from './TaskModal';
 import { DropResult } from '@hello-pangea/dnd';
 
-// Import our new split components
 import BoardHeader from './BoardHeader';
 import BoardCanvas from './BoardCanvas';
 import SnippetCanvas from './SnippetCanvas';
@@ -80,12 +79,11 @@ export default function BoardView({ boardId }: { boardId: string }) {
   }, [boardId]);
 
   const fetchBoardDetails = async () => {
-    // NEW: Added board_type to the select string
     const { data } = await supabase.from('boards').select('title, background, board_type').eq('id', boardId).single();
     if (data) {
       setBoardTitle(data.title);
       if (data.background) setBoardBg(data.background);
-      if (data.board_type) setBoardType(data.board_type); // <-- NEW
+      if (data.board_type) setBoardType(data.board_type);
     }
   };
 
@@ -95,7 +93,7 @@ export default function BoardView({ boardId }: { boardId: string }) {
 
     if (uid && uid !== currentUserId) setCurrentUserId(uid);
 
-    const { data } = await supabase.from('board_members').select(`user_id, role, status, profiles ( email )`).eq('board_id', boardId);
+    const { data } = await supabase.from('board_members').select(`user_id, role, status, profiles ( email, avatar_url )`).eq('board_id', boardId);
     const normalizedMembers = (data ?? []).map((member: any) => ({
       user_id: member.user_id,
       role: typeof member.role === 'string' ? member.role.toLowerCase().trim() : 'viewer',
@@ -295,6 +293,20 @@ export default function BoardView({ boardId }: { boardId: string }) {
     })));
   };
 
+  // --- NEW: Handle Leaving the Board ---
+  const handleLeaveBoard = async () => {
+    if (!currentUserId) return;
+    if (!window.confirm("Are you sure you want to leave this workspace? You will need to be re-invited to join again.")) return;
+    
+    await supabase
+      .from('board_members')
+      .delete()
+      .eq('board_id', boardId)
+      .eq('user_id', currentUserId);
+      
+    window.location.href = '/dashboard';
+  };
+
   if (!isMounted) return null;
 
   const isDarkBg = boardBg !== 'bg-slate-50';
@@ -312,6 +324,7 @@ export default function BoardView({ boardId }: { boardId: string }) {
         inviteRole={inviteRole} setInviteRole={setInviteRole}
         handleInvite={handleInvite} handleUpdateMemberRole={handleUpdateMemberRole}
         handleRemoveMember={handleRemoveMember} handleUpdateBackground={handleUpdateBackground}
+        handleLeaveBoard={handleLeaveBoard} /* <-- PASSING IT IN HERE */
         BACKGROUND_OPTIONS={BACKGROUND_OPTIONS} ALL_LABELS={ALL_LABELS}
       />
 
@@ -339,4 +352,4 @@ export default function BoardView({ boardId }: { boardId: string }) {
       />
     </div>
   );
-}
+} 

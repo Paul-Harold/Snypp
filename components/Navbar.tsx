@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import Logo from './Logo'; // Assuming you saved the Logo component here!
+import Logo from './Logo';
 
 export default function Navbar() {
   const router = useRouter();
@@ -63,11 +63,8 @@ export default function Navbar() {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
   };
 
-  // --- NEW: LOGOUT LOGIC ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // Use window.location to force a hard clear of the Next.js cache so 
-    // no protected data flashes on screen after logout.
     window.location.href = '/'; 
   };
 
@@ -75,7 +72,6 @@ export default function Navbar() {
     <nav className="flex items-center justify-between px-8 py-4 border-b border-slate-200 bg-white text-slate-900 h-16 relative z-50">
       <div className="flex items-center gap-6">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          {/* Using the custom SVG Logo here! */}
           <Logo className="w-8 h-8" />
           <span className="text-xl font-extrabold tracking-tight">Snypp</span>
         </Link>
@@ -129,13 +125,22 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* --- NEW: PROFILE MENU --- */}
+        {/* --- UPDATED: PROFILE MENU --- */}
         <div className="relative">
           <button 
             onClick={() => { setShowProfileMenu(!showProfileMenu); setShowNotifMenu(false); }}
-            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer transition-colors shadow-sm uppercase outline-none ${showProfileMenu ? 'bg-blue-600 text-white border-transparent' : 'bg-slate-100 text-slate-600 border border-slate-300 hover:border-blue-500'}`}
+            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer transition-colors shadow-sm uppercase outline-none overflow-hidden shrink-0 ${showProfileMenu ? 'ring-2 ring-blue-500 border-transparent bg-slate-100' : 'bg-slate-100 text-slate-600 border border-slate-300 hover:border-blue-500'}`}
           >
-            {currentUser?.email?.substring(0, 2) || 'ME'}
+            {/* Check for avatar in user_metadata first, fallback to initials */}
+            {currentUser?.user_metadata?.avatar_url ? (
+              <img 
+                src={currentUser.user_metadata.avatar_url} 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              currentUser?.email?.substring(0, 2) || 'ME'
+            )}
           </button>
 
           {showProfileMenu && (

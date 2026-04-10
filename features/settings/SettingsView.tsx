@@ -16,17 +16,10 @@ export default function SettingsView() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
-    // FIX: Use getSession() instead of getUser() in client components 
-    // when using @supabase/ssr to reliably get metadata.
+    // FIX 1: Use getSession() instead of getUser() for bulletproof client-side auth
     const getUser = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error("Session error:", error);
-        return;
-      }
-
-      const user = data.session?.user;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
       
       if (user) {
         setEmail(user.email || '');
@@ -46,18 +39,19 @@ export default function SettingsView() {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // FIX: Also use getSession() here to ensure we have the active user ID
+      // FIX 2: Use getSession() here as well so it doesn't fail the user check
       const { data: sessionData } = await supabase.auth.getSession();
-      const user = sessionData.session?.user;
+      const user = sessionData?.session?.user;
       
-      if (!user) throw new Error("Authentication error. Please log in again.");
+      if (!user) throw new Error("Authentication error. Please refresh the page and try again.");
 
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}-${Math.random()}.${fileExt}`;
 
+      // FIX 3: Added { upsert: true } to prevent "File already exists" errors
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -75,7 +69,7 @@ export default function SettingsView() {
       setMessage({ type: 'success', text: 'Profile picture updated successfully!' });
 
     } catch (error: any) {
-      console.error("Upload error:", error);
+      console.error("Upload Error:", error);
       setMessage({ type: 'error', text: error.message || 'Error uploading image.' });
     } finally {
       setIsUploading(false);
@@ -136,6 +130,7 @@ export default function SettingsView() {
           
           <div className="flex items-center gap-6">
             
+            {/* Clickable Avatar Upload */}
             <div className="relative group w-24 h-24 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-slate-100 border border-slate-200">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -145,6 +140,7 @@ export default function SettingsView() {
                 </div>
               )}
               
+              {/* Hover Overlay & Hidden Input */}
               <label className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[2px]">
                 <span className="text-[10px] font-black uppercase tracking-widest mt-1">
                   {isUploading ? 'Uploading...' : 'Change'}
