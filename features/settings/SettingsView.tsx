@@ -7,74 +7,23 @@ import Link from 'next/link';
 
 export default function SettingsView() {
   const [email, setEmail] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
-    // FIX 1: Use getSession() instead of getUser() for bulletproof client-side auth
     const getUser = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
       
       if (user) {
         setEmail(user.email || '');
-        if (user.user_metadata?.avatar_url) {
-          setAvatarUrl(user.user_metadata.avatar_url);
-        }
       }
     };
     getUser();
   }, []);
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setMessage(null);
-      setIsUploading(true);
-      
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      // FIX 2: Use getSession() here as well so it doesn't fail the user check
-      const { data: sessionData } = await supabase.auth.getSession();
-      const user = sessionData?.session?.user;
-      
-      if (!user) throw new Error("Authentication error. Please refresh the page and try again.");
-
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}-${Math.random()}.${fileExt}`;
-
-      // FIX 3: Added { upsert: true } to prevent "File already exists" errors
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: publicUrl }
-      });
-
-      if (updateError) throw updateError;
-
-      setAvatarUrl(publicUrl);
-      setMessage({ type: 'success', text: 'Profile picture updated successfully!' });
-
-    } catch (error: any) {
-      console.error("Upload Error:", error);
-      setMessage({ type: 'error', text: error.message || 'Error uploading image.' });
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,29 +79,9 @@ export default function SettingsView() {
           
           <div className="flex items-center gap-6">
             
-            {/* Clickable Avatar Upload */}
-            <div className="relative group w-24 h-24 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-slate-100 border border-slate-200">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-black text-3xl uppercase">
-                  {email ? email.substring(0, 2) : 'ME'}
-                </div>
-              )}
-              
-              {/* Hover Overlay & Hidden Input */}
-              <label className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[2px]">
-                <span className="text-[10px] font-black uppercase tracking-widest mt-1">
-                  {isUploading ? 'Uploading...' : 'Change'}
-                </span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  onChange={handleAvatarUpload} 
-                  disabled={isUploading} 
-                />
-              </label>
+            {/* Simple static initial box restored */}
+            <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-3xl uppercase shadow-inner">
+              {email ? email.substring(0, 2) : 'ME'}
             </div>
 
             <div className="flex-1">

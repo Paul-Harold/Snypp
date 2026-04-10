@@ -22,7 +22,7 @@ interface BoardHeaderProps {
   handleUpdateMemberRole: (uid: string, role: string) => void;
   handleRemoveMember: (uid: string) => void;
   handleUpdateBackground: (css: string) => void;
-  handleLeaveBoard: () => void; // <-- NEW PROP HERE
+  handleLeaveBoard: () => void; 
   BACKGROUND_OPTIONS: any[];
   ALL_LABELS: string[];
 }
