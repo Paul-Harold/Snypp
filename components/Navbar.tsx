@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Logo from './Logo';
@@ -10,32 +10,41 @@ import Logo from './Logo';
 export default function Navbar() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null); // NEW: State for the public profile
   const [notifications, setNotifications] = useState<any[]>([]);
   
-  // Menu states
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     const initNav = async () => {
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
+      await supabase.auth.refreshSession();
+      const { data: { user } } = await supabase.auth.getUser();
+      
       if (user) {
         setCurrentUser(user);
+        fetchUserProfile(user.id); // Fetch the profile to match the boards!
         fetchNotifications(user.id);
 
         const channel = supabase.channel(`nav-notifications-${user.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => {
             fetchNotifications(user.id);
+          })
+          // Also listen to the profiles table so the navbar instantly updates if you change it in settings!
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, () => {
+            fetchUserProfile(user.id);
           }).subscribe();
 
         return () => { supabase.removeChannel(channel); };
       }
     };
     initNav();
+
+    // Listen for Auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setCurrentUser(session.user);
+        fetchUserProfile(session.user.id);
       }
     });
 
@@ -43,6 +52,11 @@ export default function Navbar() {
       subscription.unsubscribe();
     };
   }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    if (data) setUserProfile(data);
+  };
 
   const fetchNotifications = async (userId: string) => {
     const { data } = await supabase
@@ -76,6 +90,9 @@ export default function Navbar() {
     await supabase.auth.signOut();
     window.location.href = '/'; 
   };
+
+  // The email initial to use as a fallback
+  const fallbackInitial = userProfile?.email?.charAt(0) || currentUser?.email?.charAt(0) || 'M';
 
   return (
     <nav className="flex items-center justify-between px-8 py-4 border-b border-slate-200 bg-white text-slate-900 h-16 relative z-50">
@@ -134,34 +151,34 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* --- UPDATED: PROFILE MENU --- */}
+        {/* --- PROFILE MENU --- */}
         <div className="relative">
           <button 
             onClick={() => { setShowProfileMenu(!showProfileMenu); setShowNotifMenu(false); }}
-            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer transition-colors shadow-sm uppercase outline-none overflow-hidden shrink-0 ${showProfileMenu ? 'ring-2 ring-blue-500 border-transparent bg-slate-100' : 'bg-slate-100 text-slate-600 border border-slate-300 hover:border-blue-500'}`}
+            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer transition-colors shadow-sm uppercase outline-none overflow-hidden shrink-0 relative ${showProfileMenu ? 'ring-2 ring-blue-500 border-transparent bg-slate-100' : 'bg-slate-100 text-slate-600 border border-slate-300 hover:border-blue-500'}`}
           >
-            {/* Check for avatar in user_metadata first, fallback to initials */}
-            {currentUser?.user_metadata?.avatar_url ? (
+            {/* 1. Bulletproof Background Text (Always there) */}
+            <span className="absolute inset-0 flex items-center justify-center bg-slate-100">
+              {fallbackInitial}
+            </span>
+
+            {/* 2. Public Profile Avatar (Only shows if valid) */}
+            {userProfile?.avatar_url && userProfile.avatar_url.startsWith('http') && (
               <img 
-                src={currentUser.user_metadata.avatar_url} 
+                src={userProfile.avatar_url} 
                 alt="Profile" 
-                className="w-full h-full object-cover" 
+                className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
-            ) : (
-              currentUser?.email?.substring(0, 2) || 'ME'
             )}
           </button>
 
           {showProfileMenu && (
             <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden flex flex-col origin-top-right animate-in fade-in zoom-in-95">
-              
-              {/* Profile Header */}
               <div className="px-4 py-4 border-b border-slate-100 bg-slate-50/50">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Signed in as</p>
                 <p className="text-sm font-bold text-slate-900 truncate" title={currentUser?.email}>{currentUser?.email}</p>
               </div>
-
-              {/* Menu Links */}
               <div className="p-2">
                 <Link 
                   href="/dashboard/settings" 
@@ -170,9 +187,7 @@ export default function Navbar() {
                 >
                   <span className="text-slate-400">⚙️</span> Account Settings
                 </Link>
-                
                 <div className="h-px bg-slate-100 my-1 mx-2"></div>
-                
                 <button 
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-red-50 rounded-xl text-sm font-bold text-red-600 transition-colors outline-none"
@@ -180,7 +195,6 @@ export default function Navbar() {
                   <span className="text-red-400">🚪</span> Sign Out
                 </button>
               </div>
-
             </div>
           )}
         </div>
