@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-// Define the props we need from the parent
 interface BoardHeaderProps {
   boardTitle: string;
   boardBg: string;
@@ -22,7 +21,7 @@ interface BoardHeaderProps {
   handleUpdateMemberRole: (uid: string, role: string) => void;
   handleRemoveMember: (uid: string) => void;
   handleUpdateBackground: (css: string) => void;
-  handleLeaveBoard: () => void; 
+  handleLeaveBoard: () => void;
   BACKGROUND_OPTIONS: any[];
   ALL_LABELS: string[];
 }
@@ -33,7 +32,6 @@ export default function BoardHeader({
   handleInvite, handleUpdateMemberRole, handleRemoveMember, handleUpdateBackground, handleLeaveBoard, BACKGROUND_OPTIONS, ALL_LABELS
 }: BoardHeaderProps) {
   
-  // Local UI state (dropdowns)
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showTeamMenu, setShowTeamMenu] = useState(false);
@@ -100,29 +98,39 @@ export default function BoardHeader({
             </div>
           )}
 
-          {/* Team / Invite */}
+          {/* Team / Invite / Leave */}
           <div className={`flex items-center gap-4 p-2 px-4 rounded-xl border hidden md:flex ${glassPanelClass}`}>
             <div className="relative">
-              {/* The clickable avatar stack */}
+              
+              {/* AVATAR STACK (Header) */}
               <div className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform" onClick={() => { setShowTeamMenu(!showTeamMenu); setShowThemeMenu(false); setShowFilterMenu(false); }}>
                 {members.map(m => (
                   <div 
                     key={m.user_id} 
-                    className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs border-2 border-white font-bold overflow-hidden shadow-sm shrink-0"
+                    className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs border-2 border-white font-bold overflow-hidden shadow-sm shrink-0 uppercase relative"
                     title={m.profiles?.email}
                   >
-                    {m.profiles?.avatar_url ? (
-                      <img src={m.profiles.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      m.profiles?.email?.charAt(0).toUpperCase() || '?'
+                    {/* 1. Fallback text always sits perfectly in the center behind the image */}
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      {m.profiles?.email?.charAt(0) || '?'}
+                    </span>
+                    
+                    {/* 2. The Image goes on top. If it breaks, onError hides it, revealing the text! */}
+                    {m.profiles?.avatar_url && m.profiles.avatar_url.startsWith('http') && (
+                      <img 
+                        src={m.profiles.avatar_url} 
+                        alt="Profile" 
+                        className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
                     )}
                   </div>
                 ))}
               </div>
 
-              {/* TEAM MENU DROPDOWN */}
+              {/* TEAM MENU (Dropdown) */}
               {showTeamMenu && (
-                <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 text-slate-800 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 text-slate-800 animate-in fade-in zoom-in-95">
                   <div className="px-3 py-2 border-b border-slate-100 mb-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Team Members ({members.length})</span>
                   </div>
@@ -130,19 +138,26 @@ export default function BoardHeader({
                     {members.map(m => (
                       <div key={m.user_id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors">
                         <div className="flex items-center gap-2 truncate">
-                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold overflow-hidden shrink-0 border border-slate-200">
-                            {m.profiles?.avatar_url ? (
-                              <img src={m.profiles.avatar_url} className="w-full h-full object-cover" />
-                            ) : (
-                              m.profiles?.email?.charAt(0).toUpperCase()
+                          
+                          {/* Mini Avatar in Dropdown */}
+                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold overflow-hidden shrink-0 border border-slate-200 uppercase relative">
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              {m.profiles?.email?.charAt(0) || '?'}
+                            </span>
+                            {m.profiles?.avatar_url && m.profiles.avatar_url.startsWith('http') && (
+                              <img 
+                                src={m.profiles.avatar_url} 
+                                className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
                             )}
                           </div>
-                          <span className="text-sm font-bold text-slate-700 truncate max-w-[100px]" title={m.profiles?.email}>
+
+                          <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]" title={m.profiles?.email}>
                             {m.profiles?.email?.split('@')[0]}
                           </span>
                         </div>
                         
-                        {/* ROLE LOGIC & LEAVE BUTTON */}
                         {m.user_id !== currentUserId ? (
                           <div className="flex items-center gap-1 shrink-0">
                             {canManageBoard ? (
@@ -171,7 +186,6 @@ export default function BoardHeader({
                             <span className="text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200 rounded-md px-2 py-1.5 uppercase">
                               {m.role} (YOU)
                             </span>
-                            {/* THE LEAVE BUTTON! Only shows if you are not the owner */}
                             {m.role !== 'owner' && (
                               <button 
                                 onClick={handleLeaveBoard} 
@@ -187,7 +201,6 @@ export default function BoardHeader({
                   </div>
                 </div>
               )}
-              {/* END TEAM MENU */}
             </div>
             
             {canManageBoard && (
