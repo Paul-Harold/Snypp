@@ -1,7 +1,7 @@
 // features/boards/SnippetCanvas.tsx
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-
+import FocusLockedInput from '@/components/FocusLockedInput';
 interface Snippet { id: string; title: string; content: string; color: string; }
 
 // Using full standard Tailwind classes so the JIT compiler definitely catches them
@@ -135,15 +135,14 @@ export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boa
             </div>
 
             {/* Auto-resizing textarea that expands to fit all content */}
-            <textarea 
-              ref={(el) => { textareaRefs.current[snippet.id] = el; }}
-              value={snippet.content || ''}
-              onChange={(e) => handleUpdateSnippet(snippet.id, { content: e.target.value })}
-              readOnly={!canEdit}
-              placeholder="Paste your code snippet, text, or clues here..."
-              className="w-full bg-black/5 text-slate-800 p-4 rounded-xl outline-none resize-none focus:ring-2 focus:ring-black/10 font-mono text-sm leading-relaxed min-h-[100px]"
-              style={{ height: 'auto', overflow: 'hidden' }}
-            />
+            <FocusLockedInput 
+          isTextarea={true}
+          initialValue={snippet.content || ''}
+          onSave={(newText) => handleUpdateSnippet(snippet.id, { content: newText })}
+          readOnly={!canEdit}
+          placeholder="Paste your code snippet, text, or clues here..."
+          className="w-full bg-black/5 text-slate-800 p-4 rounded-xl outline-none resize-none focus:ring-2 focus:ring-black/10 font-mono text-sm leading-relaxed min-h-[100px]"
+        />
           </div>
         ))}
       </div>
