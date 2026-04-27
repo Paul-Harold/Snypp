@@ -2,32 +2,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-// --- NEW: Bulletproof Avatar Component ---
-// This completely removes the <img> tag if the URL is broken, guaranteeing no ugly icons.
-const MemberAvatar = ({ profile, sizeClass, textClass }: { profile: any, sizeClass: string, textClass: string }) => {
-  const [hasError, setHasError] = useState(false);
-  const showImage = profile?.avatar_url && profile.avatar_url.startsWith('http') && !hasError;
-
-  return (
-    <div className={`relative rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 uppercase ${sizeClass} ${showImage ? 'bg-white' : 'bg-blue-600 text-white'}`}>
-      {/* 1. Fallback text */}
-      <span className={`absolute inset-0 flex items-center justify-center ${textClass}`}>
-        {profile?.email?.charAt(0) || '?'}
-      </span>
-      
-      {/* 2. Actual Image (Only renders if it exists and hasn't errored out) */}
-      {showImage && (
-        <img 
-          src={profile.avatar_url} 
-          alt="Profile" 
-          className="absolute inset-0 w-full h-full object-cover z-10" 
-          onError={() => setHasError(true)} // Destroys the image tag instantly if broken
-        />
-      )}
-    </div>
-  );
-};
-
 interface BoardHeaderProps {
   boardTitle: string;
   boardBg: string;
@@ -128,13 +102,28 @@ export default function BoardHeader({
           <div className={`flex items-center gap-4 p-2 px-4 rounded-xl border hidden md:flex ${glassPanelClass}`}>
             <div className="relative">
               
-              {/* AVATAR STACK (Using our new bulletproof component) */}
+              {/* AVATAR STACK (Using Navbar Logic!) */}
               <div className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform" onClick={() => { setShowTeamMenu(!showTeamMenu); setShowThemeMenu(false); setShowFilterMenu(false); }}>
-                {members.map(m => (
-                  <div key={m.user_id} className="border-2 border-white rounded-full shadow-sm" title={m.profiles?.email}>
-                    <MemberAvatar profile={m.profiles} sizeClass="w-8 h-8" textClass="text-xs" />
-                  </div>
-                ))}
+                {members.map(m => {
+                  const fallbackInitial = m.profiles?.email?.charAt(0)?.toUpperCase() || '?';
+                  return (
+                    <div key={m.user_id} className="relative w-8 h-8 rounded-full border-2 border-white shadow-sm overflow-hidden shrink-0 bg-blue-600" title={m.profiles?.email}>
+                      {/* 1. Bulletproof Text */}
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white uppercase">
+                        {fallbackInitial}
+                      </span>
+                      {/* 2. Image overlay */}
+                      {m.profiles?.avatar_url && m.profiles.avatar_url.startsWith('http') && (
+                        <img 
+                          src={m.profiles.avatar_url} 
+                          alt="Profile" 
+                          className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* TEAM MENU (Dropdown) */}
@@ -144,60 +133,72 @@ export default function BoardHeader({
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Team Members ({members.length})</span>
                   </div>
                   <div className="max-h-60 overflow-y-auto flex flex-col gap-1">
-                    {members.map(m => (
-                      <div key={m.user_id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors">
-                        <div className="flex items-center gap-2 truncate">
-                          
-                          {/* Mini Avatar in Dropdown */}
-                          <div className="border border-slate-200 rounded-full">
-                            <MemberAvatar profile={m.profiles} sizeClass="w-7 h-7" textClass="text-[10px]" />
-                          </div>
-
-                          <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]" title={m.profiles?.email}>
-                            {m.profiles?.email?.split('@')[0]}
-                          </span>
-                        </div>
-                        
-                        {m.user_id !== currentUserId ? (
-                          <div className="flex items-center gap-1 shrink-0">
-                            {canManageBoard ? (
-                              <>
-                                <select 
-                                  value={m.role} 
-                                  onChange={(e) => handleUpdateMemberRole(m.user_id, e.target.value)}
-                                  className="text-[10px] font-bold bg-slate-100 text-slate-600 rounded-md px-1.5 py-1.5 outline-none cursor-pointer hover:bg-slate-200 transition-colors border border-transparent hover:border-slate-300"
-                                >
-                                  <option value="owner">OWNER</option>
-                                  <option value="member">MEMBER</option>
-                                  <option value="viewer">VIEWER</option>
-                                </select>
-                                <button onClick={() => handleRemoveMember(m.user_id)} className="text-slate-300 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors" title="Remove Member">
-                                  ✕
-                                </button>
-                              </>
-                            ) : (
-                              <span className="text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 rounded-md px-2 py-1.5 shrink-0 uppercase">
-                                {m.role}
+                    {members.map(m => {
+                      const fallbackInitial = m.profiles?.email?.charAt(0)?.toUpperCase() || '?';
+                      return (
+                        <div key={m.user_id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                          <div className="flex items-center gap-2 truncate">
+                            
+                            {/* Mini Avatar in Dropdown (Using Navbar Logic!) */}
+                            <div className="relative w-7 h-7 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-blue-50">
+                              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-blue-600 uppercase">
+                                {fallbackInitial}
                               </span>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200 rounded-md px-2 py-1.5 uppercase">
-                              {m.role} (YOU)
+                              {m.profiles?.avatar_url && m.profiles.avatar_url.startsWith('http') && (
+                                <img 
+                                  src={m.profiles.avatar_url} 
+                                  className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                              )}
+                            </div>
+
+                            <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]" title={m.profiles?.email}>
+                              {m.profiles?.email?.split('@')[0]}
                             </span>
-                            {m.role !== 'owner' && (
-                              <button 
-                                onClick={handleLeaveBoard} 
-                                className="text-[10px] font-bold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-md px-2 py-1.5 transition-colors shadow-sm"
-                              >
-                                Leave
-                              </button>
-                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          
+                          {m.user_id !== currentUserId ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              {canManageBoard ? (
+                                <>
+                                  <select 
+                                    value={m.role} 
+                                    onChange={(e) => handleUpdateMemberRole(m.user_id, e.target.value)}
+                                    className="text-[10px] font-bold bg-slate-100 text-slate-600 rounded-md px-1.5 py-1.5 outline-none cursor-pointer hover:bg-slate-200 transition-colors border border-transparent hover:border-slate-300"
+                                  >
+                                    <option value="owner">OWNER</option>
+                                    <option value="member">MEMBER</option>
+                                    <option value="viewer">VIEWER</option>
+                                  </select>
+                                  <button onClick={() => handleRemoveMember(m.user_id)} className="text-slate-300 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors" title="Remove Member">
+                                    ✕
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 rounded-md px-2 py-1.5 shrink-0 uppercase">
+                                  {m.role}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200 rounded-md px-2 py-1.5 uppercase">
+                                {m.role} (YOU)
+                              </span>
+                              {m.role !== 'owner' && (
+                                <button 
+                                  onClick={handleLeaveBoard} 
+                                  className="text-[10px] font-bold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-md px-2 py-1.5 transition-colors shadow-sm"
+                                >
+                                  Leave
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
