@@ -2,6 +2,32 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+// --- NEW: Bulletproof Avatar Component ---
+// This completely removes the <img> tag if the URL is broken, guaranteeing no ugly icons.
+const MemberAvatar = ({ profile, sizeClass, textClass }: { profile: any, sizeClass: string, textClass: string }) => {
+  const [hasError, setHasError] = useState(false);
+  const showImage = profile?.avatar_url && profile.avatar_url.startsWith('http') && !hasError;
+
+  return (
+    <div className={`relative rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 uppercase ${sizeClass} ${showImage ? 'bg-white' : 'bg-blue-600 text-white'}`}>
+      {/* 1. Fallback text */}
+      <span className={`absolute inset-0 flex items-center justify-center ${textClass}`}>
+        {profile?.email?.charAt(0) || '?'}
+      </span>
+      
+      {/* 2. Actual Image (Only renders if it exists and hasn't errored out) */}
+      {showImage && (
+        <img 
+          src={profile.avatar_url} 
+          alt="Profile" 
+          className="absolute inset-0 w-full h-full object-cover z-10" 
+          onError={() => setHasError(true)} // Destroys the image tag instantly if broken
+        />
+      )}
+    </div>
+  );
+};
+
 interface BoardHeaderProps {
   boardTitle: string;
   boardBg: string;
@@ -102,28 +128,11 @@ export default function BoardHeader({
           <div className={`flex items-center gap-4 p-2 px-4 rounded-xl border hidden md:flex ${glassPanelClass}`}>
             <div className="relative">
               
-              {/* AVATAR STACK (Header) */}
+              {/* AVATAR STACK (Using our new bulletproof component) */}
               <div className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform" onClick={() => { setShowTeamMenu(!showTeamMenu); setShowThemeMenu(false); setShowFilterMenu(false); }}>
                 {members.map(m => (
-                  <div 
-                    key={m.user_id} 
-                    className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs border-2 border-white font-bold overflow-hidden shadow-sm shrink-0 uppercase relative"
-                    title={m.profiles?.email}
-                  >
-                    {/* 1. Fallback text always sits perfectly in the center behind the image */}
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      {m.profiles?.email?.charAt(0) || '?'}
-                    </span>
-                    
-                    {/* 2. The Image goes on top. If it breaks, onError hides it, revealing the text! */}
-                    {m.profiles?.avatar_url && m.profiles.avatar_url.startsWith('http') && (
-                      <img 
-                        src={m.profiles.avatar_url} 
-                        alt="Profile" 
-                        className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                      />
-                    )}
+                  <div key={m.user_id} className="border-2 border-white rounded-full shadow-sm" title={m.profiles?.email}>
+                    <MemberAvatar profile={m.profiles} sizeClass="w-8 h-8" textClass="text-xs" />
                   </div>
                 ))}
               </div>
@@ -140,17 +149,8 @@ export default function BoardHeader({
                         <div className="flex items-center gap-2 truncate">
                           
                           {/* Mini Avatar in Dropdown */}
-                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold overflow-hidden shrink-0 border border-slate-200 uppercase relative">
-                            <span className="absolute inset-0 flex items-center justify-center">
-                              {m.profiles?.email?.charAt(0) || '?'}
-                            </span>
-                            {m.profiles?.avatar_url && m.profiles.avatar_url.startsWith('http') && (
-                              <img 
-                                src={m.profiles.avatar_url} 
-                                className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
-                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              />
-                            )}
+                          <div className="border border-slate-200 rounded-full">
+                            <MemberAvatar profile={m.profiles} sizeClass="w-7 h-7" textClass="text-[10px]" />
                           </div>
 
                           <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]" title={m.profiles?.email}>
