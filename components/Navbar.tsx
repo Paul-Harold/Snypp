@@ -33,6 +33,15 @@ export default function Navbar() {
       }
     };
     initNav();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setCurrentUser(session.user);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchNotifications = async (userId: string) => {

@@ -25,7 +25,7 @@ interface ListColumnProps {
   tasks: Task[];
   index: number;
   members: BoardMember[];
-  canEditTasks: boolean; // Required for Role-Based Access
+  canEditTasks: boolean;
   onAssignTask: (taskId: string, assigneeId: string | null) => void;
   onAddTask: (listId: string, content: string) => void;
   onDeleteList: (listId: string) => void;
@@ -48,6 +48,7 @@ export default function ListColumn({
   list, tasks, index, members = [], canEditTasks, onAssignTask, onAddTask, onDeleteList, onDeleteTask, onUpdateList, onUpdateTask, onTaskClick 
 }: ListColumnProps) {
   
+  // Localized typing state
   const [newTaskContent, setNewTaskContent] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState(list.title);
@@ -55,13 +56,16 @@ export default function ListColumn({
   const handleCreateTask = () => {
     if (!newTaskContent.trim()) return;
     onAddTask(list.id, newTaskContent);
-    setNewTaskContent('');
+    setNewTaskContent(''); // Clears out on successful add
   };
 
   const submitListEdit = () => {
     setIsEditingTitle(false);
-    if (editTitleValue.trim() && editTitleValue !== list.title) onUpdateList(list.id, editTitleValue);
-    else setEditTitleValue(list.title); 
+    if (editTitleValue.trim() && editTitleValue !== list.title) {
+      onUpdateList(list.id, editTitleValue);
+    } else {
+      setEditTitleValue(list.title); 
+    }
   };
 
   return (

@@ -68,7 +68,7 @@ export default function BoardView({ boardId }: { boardId: string }) {
     pollingRef.current = window.setInterval(() => {
       fetchListsAndTasks();
       fetchMembers();
-    }, 1000);
+    }, 5000);
 
     return () => {
       supabase.removeChannel(channel);
