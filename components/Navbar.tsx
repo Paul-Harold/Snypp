@@ -138,7 +138,6 @@ export default function Navbar() {
             onClick={() => { setShowProfileMenu(!showProfileMenu); setShowNotifMenu(false); }}
             className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer transition-colors shadow-sm uppercase outline-none overflow-hidden shrink-0 ${showProfileMenu ? 'ring-2 ring-blue-500 border-transparent bg-slate-100' : 'bg-slate-100 text-slate-600 border border-slate-300 hover:border-blue-500'}`}
           >
-            {/* Check for avatar in user_metadata first, fallback to initials */}
             {currentUser?.user_metadata?.avatar_url ? (
               <img 
                 src={currentUser.user_metadata.avatar_url} 
@@ -146,7 +145,9 @@ export default function Navbar() {
                 className="w-full h-full object-cover" 
               />
             ) : (
-              currentUser?.email?.substring(0, 2) || 'ME'
+              <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                {currentUser?.email?.substring(0, 2) || 'ME'}
+              </div>
             )}
           </button>
 

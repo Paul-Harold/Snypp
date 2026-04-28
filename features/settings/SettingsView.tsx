@@ -59,11 +59,17 @@ export default function SettingsView() {
         .from('avatars')
         .getPublicUrl(filePath);
 
+      // 1. Update private Auth session (For the Navbar)
       const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl }
       });
-
       if (updateError) throw updateError;
+
+      // 2. Update public Profiles table (For the Board Header!)
+      const { error: profileError } = await supabase.from('profiles').update({
+        avatar_url: publicUrl
+      }).eq('id', user.id);
+      if (profileError) console.error("Profile update error:", profileError);
 
       setAvatarUrl(publicUrl);
       setMessage({ type: 'success', text: 'Profile picture updated successfully!' });

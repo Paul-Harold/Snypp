@@ -103,21 +103,15 @@ export default function BoardHeader({
             <div className="relative">
               
               {/* AVATAR STACK - MATCHING NAVBAR LOGIC */}
-              <div className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform" onClick={() => { setShowTeamMenu(!showTeamMenu); setShowThemeMenu(false); setShowFilterMenu(false); }}>
+              <div className="flex -space-x-2 cursor-pointer" onClick={() => { setShowTeamMenu(!showTeamMenu); setShowThemeMenu(false); setShowFilterMenu(false); }}>
                 {members.map(m => (
-                  <div 
-                    key={m.user_id} 
-                    className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs border-2 border-white font-bold overflow-hidden shadow-sm shrink-0 uppercase"
-                    title={m.profiles?.email}
-                  >
+                  <div key={m.user_id} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm shrink-0 uppercase relative bg-slate-100">
                     {m.profiles?.avatar_url ? (
-                      <img 
-                        src={m.profiles.avatar_url} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover" 
-                      />
+                      <img src={m.profiles.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      m.profiles?.email?.substring(0, 2) || 'ME'
+                      <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold">
+                        {m.profiles?.email?.substring(0, 2) || 'ME'}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -134,8 +128,8 @@ export default function BoardHeader({
                       <div key={m.user_id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition-colors">
                         <div className="flex items-center gap-2 truncate">
                           
-                          {/* MINI AVATAR IN DROPDOWN - MATCHING NAVBAR LOGIC */}
-                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold overflow-hidden shrink-0 border border-slate-200 uppercase">
+                          {/* MINI AVATAR IN DROPDOWN */}
+                          <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-slate-200 uppercase bg-slate-100">
                             {m.profiles?.avatar_url ? (
                               <img 
                                 src={m.profiles.avatar_url} 
@@ -143,7 +137,9 @@ export default function BoardHeader({
                                 className="w-full h-full object-cover" 
                               />
                             ) : (
-                              m.profiles?.email?.substring(0, 2) || 'ME'
+                              <div className="w-full h-full bg-blue-100 flex items-center justify-center text-blue-600 text-[10px] font-bold">
+                                {m.profiles?.email?.substring(0, 2) || 'ME'}
+                              </div>
                             )}
                           </div>
 
