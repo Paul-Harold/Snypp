@@ -105,7 +105,7 @@ export default function SettingsView() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 p-8 flex justify-center items-start">
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 p-4 sm:p-8 flex justify-center items-start">
       <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* Header */}
@@ -125,10 +125,10 @@ export default function SettingsView() {
         )}
 
         {/* Profile Card */}
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8 mb-8">
+        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-5 sm:p-8 mb-8">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Profile Information</h3>
           
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full">
             
             {/* Clickable Avatar Upload */}
             <div className="relative group w-24 h-24 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-slate-100 border border-slate-200">
@@ -171,7 +171,7 @@ export default function SettingsView() {
         </div>
 
         {/* Security / Password Card */}
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8">
+        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-5 sm:p-8">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Security</h3>
           
           <form onSubmit={handleUpdatePassword} className="space-y-4">
@@ -202,7 +202,7 @@ export default function SettingsView() {
             <button 
               type="submit"
               disabled={isLoading || !newPassword || !confirmPassword}
-              className="mt-4 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 disabled:opacity-50 transition-all active:scale-[0.98] outline-none"
+              className="mt-4 w-full sm:w-auto bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 disabled:opacity-50 transition-all active:scale-[0.98] outline-none"
             >
               {isLoading ? 'Updating...' : 'Update Password'}
             </button>

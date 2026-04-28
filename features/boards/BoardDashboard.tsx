@@ -25,6 +25,7 @@ export default function BoardDashboard({ userId }: { userId: string }) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey>('agile');
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [titleError, setTitleError] = useState('');
   
   // NEW: Edit states
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
@@ -79,7 +80,11 @@ export default function BoardDashboard({ userId }: { userId: string }) {
   };
 
   const handleCreateBoard = async () => {
-    if (!newBoardTitle.trim()) return;
+    if (!newBoardTitle.trim()) {
+      setTitleError('A board name is required to launch a project.'); // Show the error
+      return;
+    }
+    setTitleError(''); // Clear any existing errors
     setIsLoading(true);
 
     // NEW: Determine if it's a kanban or snippets board
@@ -107,6 +112,7 @@ export default function BoardDashboard({ userId }: { userId: string }) {
       }
 
       setNewBoardTitle('');
+      setTitleError('');
       setIsModalOpen(false); 
       fetchBoards();
     }
@@ -156,7 +162,7 @@ export default function BoardDashboard({ userId }: { userId: string }) {
   );
 
   return (
-    <div className="py-10 text-slate-900 bg-white min-h-[80vh]">
+    <div className="px-4 sm:px-8 py-6 sm:py-10 text-slate-900 bg-white min-h-[80vh]">
       
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4 border-b border-slate-100 pb-6">
@@ -188,7 +194,7 @@ export default function BoardDashboard({ userId }: { userId: string }) {
       </div>
 
       {/* BOARDS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {boards.length === 0 ? (
           <div className="col-span-full py-20 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center bg-slate-50/50">
             <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl mb-4">📂</div>
@@ -202,7 +208,7 @@ export default function BoardDashboard({ userId }: { userId: string }) {
         ) : (
           filteredBoards.map((board) => (
             <Link href={`/dashboard/${board.id}`} key={board.id} className="group relative block">
-              <div className="h-48 p-8 bg-white border border-slate-200 rounded-3xl shadow-sm group-hover:shadow-xl group-hover:border-blue-500/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative">
+              <div className="h-40 sm:h-48 p-5 sm:p-8 bg-white border border-slate-200 rounded-3xl shadow-sm group-hover:shadow-xl group-hover:border-blue-500/50 transition-all duration-300 flex flex-col justify-between overflow-hidden relative">
                 
                 {/* Arrow Icon */}
                 <div className="absolute top-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -267,7 +273,7 @@ export default function BoardDashboard({ userId }: { userId: string }) {
         onClose={() => setIsModalOpen(false)}
         className="p-0 m-auto w-full max-w-md bg-white rounded-[32px] shadow-2xl backdrop:bg-slate-900/40 backdrop:backdrop-blur-md border-0 open:animate-in open:fade-in open:zoom-in-95 duration-300 text-slate-900"
       >
-        <div className="p-8">
+        <div className="p-5 sm:p-8">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-2xl font-bold text-slate-900">New Project</h3>
             <button 
@@ -280,15 +286,33 @@ export default function BoardDashboard({ userId }: { userId: string }) {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2 ml-1 uppercase tracking-wider">Board Name <span className="text-blue-500">*</span></label>
+              <label className="block text-sm font-bold text-slate-700 mb-2 ml-1 uppercase tracking-wider">
+                Board Name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 autoFocus
                 placeholder="E.g. Mobile App Redesign"
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all font-medium text-slate-900 placeholder-slate-400"
+                className={`w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none focus:ring-4 transition-all font-medium text-slate-900 placeholder-slate-400 ${
+                  titleError 
+                    ? 'border-red-400 focus:ring-red-500/10 focus:border-red-500 focus:bg-white' 
+                    : 'border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white'
+                }`}
                 value={newBoardTitle}
-                onChange={(e) => setNewBoardTitle(e.target.value)}
+                onChange={(e) => {
+                  setNewBoardTitle(e.target.value);
+                  if (titleError) setTitleError(''); // instantly hide error as soon as they start typing!
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateBoard(); // Allow hitting Enter to submit
+                }}
               />
+              {/* THE ERROR MESSAGE */}
+              {titleError && (
+                <p className="text-red-500 text-xs font-bold mt-2 ml-1 flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
+                  <span className="text-sm">⚠️</span> {titleError}
+                </p>
+              )}
             </div>
 
             <div>
@@ -323,7 +347,7 @@ export default function BoardDashboard({ userId }: { userId: string }) {
             </button>
             <button
               onClick={handleCreateBoard}
-              disabled={isLoading || !newBoardTitle.trim()}
+              disabled={isLoading}
               className="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-600/20 active:scale-95 outline-none"
             >
               {isLoading ? 'Creating...' : 'Launch Project'}
