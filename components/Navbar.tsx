@@ -24,6 +24,15 @@ export default function Navbar() {
         setCurrentUser(user);
         fetchNotifications(user.id);
 
+        // Sync auth avatar (e.g. Google OAuth) → profiles table so team icons match
+        const metaAvatar = user.user_metadata?.avatar_url;
+        if (metaAvatar) {
+          const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).single();
+          if (profile && profile.avatar_url !== metaAvatar) {
+            await supabase.from('profiles').update({ avatar_url: metaAvatar }).eq('id', user.id);
+          }
+        }
+
         const channel = supabase.channel(`nav-notifications-${user.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => {
             fetchNotifications(user.id);
