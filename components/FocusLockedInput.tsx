@@ -1,7 +1,7 @@
 // components/FocusLockedInput.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface FocusLockedInputProps {
   initialValue: string;
@@ -22,12 +22,20 @@ export default function FocusLockedInput({
 }: FocusLockedInputProps) {
   const [localValue, setLocalValue] = useState(initialValue || '');
   const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!isFocused) {
       setLocalValue(initialValue || '');
     }
   }, [initialValue, isFocused]);
+
+  useEffect(() => {
+    if (isTextarea && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [localValue, isTextarea]);
 
   const handleCommit = () => {
     setIsFocused(false);
@@ -49,14 +57,16 @@ export default function FocusLockedInput({
   if (isTextarea) {
     return (
       <textarea
+        ref={textareaRef}
         value={localValue}
         placeholder={placeholder}
-        readOnly={readOnly} // <-- ADD THIS
-        onFocus={() => !readOnly && setIsFocused(true)} // Don't focus-lock if read only
+        readOnly={readOnly}
+        onFocus={() => !readOnly && setIsFocused(true)}
         onChange={(e) => setLocalValue(e.target.value)}
         onBlur={handleCommit}
         onKeyDown={handleKeyDown}
         className={className}
+        style={{ overflow: 'hidden' }}
       />
     );
   }

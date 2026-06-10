@@ -1,5 +1,5 @@
 // features/boards/SnippetCanvas.tsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import FocusLockedInput from '@/components/FocusLockedInput';
 interface Snippet { id: string; title: string; content: string; color: string; }
@@ -17,7 +17,6 @@ const COLORS = [
 export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boardId: string, canEdit: boolean, currentUserId: string | null }) {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const textareaRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
 
   useEffect(() => {
     fetchSnippets();
@@ -28,17 +27,6 @@ export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boa
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [boardId]);
-
-  // Auto-resize textareas when content changes
-  useEffect(() => {
-    snippets.forEach(snippet => {
-      const textarea = textareaRefs.current[snippet.id];
-      if (textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = textarea.scrollHeight + 'px';
-      }
-    });
-  }, [snippets]);
 
   const fetchSnippets = async () => {
     const { data, error } = await supabase.from('snippets').select('*').eq('board_id', boardId).order('created_at', { ascending: false });
@@ -105,10 +93,9 @@ export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boa
             
             {/* Header (Title & Buttons) - shrink-0 prevents it from getting squished */}
             <div className="flex justify-between items-start mb-4 gap-2 shrink-0">
-              <input 
-                type="text" 
-                value={snippet.title} 
-                onChange={(e) => handleUpdateSnippet(snippet.id, { title: e.target.value })}
+              <FocusLockedInput
+                initialValue={snippet.title}
+                onSave={(newTitle) => handleUpdateSnippet(snippet.id, { title: newTitle })}
                 readOnly={!canEdit}
                 placeholder="Title..."
                 className="font-extrabold text-slate-800 bg-transparent outline-none w-full border-b border-transparent focus:border-slate-800/20"
