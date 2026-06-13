@@ -3,19 +3,9 @@
 
 import { useState } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { Task } from './types';
 
-export interface Task { 
-  id: string; 
-  list_id: string; 
-  content: string; 
-  position: number; 
-  assignee_id?: string;
-  description?: string; 
-  due_date?: string; 
-  story_points?: number; 
-  labels?: string[]; 
-  subtasks?: { id: string; title: string; completed: boolean; }[];
-}
+export type { Task };
 
 interface List { id: string; title: string; position: number; }
 interface BoardMember { user_id: string; profiles: { email: string } | null; }
@@ -92,7 +82,7 @@ export default function ListColumn({
               />
             ) : (
               <h3 
-                onClick={() => { if (canEditTasks) setIsEditingTitle(true); }} 
+                onClick={() => { if (canEditTasks) { setEditTitleValue(list.title); setIsEditingTitle(true); } }}
                 className={`font-bold text-slate-800 px-1 rounded transition w-full ${canEditTasks ? 'cursor-text hover:bg-gray-200' : ''}`}
               >
                 {list.title} <span className="text-gray-400 font-normal text-sm ml-1">({tasks.length})</span>
@@ -161,11 +151,26 @@ export default function ListColumn({
                                     <span className="text-blue-500">❖</span> {task.story_points}
                                   </span>
                                 )}
-                                {task.due_date && (
-                                  <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                                    📅 {new Date(task.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                  </span>
-                                )}
+                                {task.due_date && (() => {
+                                  // Parse Y-M-D parts directly — new Date('YYYY-MM-DD') is UTC
+                                  // midnight and can land on the wrong local day
+                                  const [y, m, d] = task.due_date.slice(0, 10).split('-').map(Number);
+                                  const due = new Date(y, m - 1, d);
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  const isOverdue = due.getTime() < today.getTime();
+                                  const isDueToday = due.getTime() === today.getTime();
+                                  return (
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                        isOverdue ? 'bg-red-100 text-red-700' : isDueToday ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
+                                      }`}
+                                      title={isOverdue ? 'Overdue' : isDueToday ? 'Due today' : 'Due date'}
+                                    >
+                                      {isOverdue ? '⚠' : '📅'} {due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    </span>
+                                  );
+                                })()}
                                 {task.subtasks && task.subtasks.length > 0 && (
                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
                                     task.subtasks.filter(st => st.completed).length === task.subtasks.length 
@@ -202,7 +207,7 @@ export default function ListColumn({
 
                               {assignee && (
                                 <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shadow-sm" title={assignee.profiles?.email}>
-                                  {assignee.profiles?.email.charAt(0).toUpperCase()}
+                                  {assignee.profiles?.email?.charAt(0).toUpperCase() || '?'}
                                 </div>
                               )}
                             </div>

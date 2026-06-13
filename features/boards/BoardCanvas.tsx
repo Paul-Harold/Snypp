@@ -1,14 +1,14 @@
 // features/boards/BoardCanvas.tsx
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import ListColumn from './ListColumn';
+import { Task } from './types';
 
 
 interface BoardCanvasProps {
   lists: any[];
   tasks: any[];
   members: any[];
-  searchQuery: string;
-  filterLabel: string | null;
+  taskMatchesFilter: (task: Task) => boolean;
   canEditTasks: boolean;
   onDragEnd: (result: DropResult) => void;
   handleAssignTask: (taskId: string, assigneeId: string | null) => void;
@@ -25,7 +25,7 @@ interface BoardCanvasProps {
 }
 
 export default function BoardCanvas({
-  lists, tasks, members, searchQuery, filterLabel, canEditTasks, onDragEnd, handleAssignTask,
+  lists, tasks, members, taskMatchesFilter, canEditTasks, onDragEnd, handleAssignTask,
   handleAddTask, handleDeleteList, handleDeleteTask, handleUpdateList, handleUpdateTask,
   setSelectedTask, newListTitle, setNewListTitle, handleCreateList, isDarkBg
 }: BoardCanvasProps) {
@@ -36,15 +36,7 @@ export default function BoardCanvas({
           {(provided) => (
             <div {...provided.droppableProps} ref={provided.innerRef} className="flex flex-col md:flex-row md:flex-wrap gap-6 items-start w-full">
               {lists.map((list, index) => {
-                const filteredTasks = tasks.filter(t => {
-                  if (t.list_id !== list.id) return false;
-                  if (searchQuery) {
-                    const query = searchQuery.toLowerCase();
-                    if (!t.content.toLowerCase().includes(query) && !t.description?.toLowerCase().includes(query)) return false;
-                  }
-                  if (filterLabel && (!t.labels || !t.labels.includes(filterLabel))) return false;
-                  return true;
-                });
+                const filteredTasks = tasks.filter(t => t.list_id === list.id && taskMatchesFilter(t));
 
                 return (
                   <ListColumn 

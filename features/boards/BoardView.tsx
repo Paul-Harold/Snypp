@@ -9,12 +9,9 @@ import { DropResult } from '@hello-pangea/dnd';
 import BoardHeader from './BoardHeader';
 import BoardCanvas from './BoardCanvas';
 import SnippetCanvas from './SnippetCanvas';
+import { Task } from './types';
 
-export interface Task { 
-  id: string; list_id: string; content: string; position: number; 
-  assignee_id?: string; description?: string; due_date?: string; 
-  story_points?: number; labels?: string[]; subtasks?: { id: string; title: string; completed: boolean; }[];
-}
+export type { Task };
 interface List { id: string; title: string; position: number; }
 interface BoardMember { user_id: string; role: string; status?: string; profiles: { email: string } | null; }
 
@@ -51,7 +48,13 @@ export default function BoardView({ boardId }: { boardId: string }) {
 
   useEffect(() => {
     setIsMounted(true);
-    
+
+    // Logged-out deep links to a board should land on the login page instead
+    // of rendering a broken (RLS-blocked) board
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) window.location.href = '/login';
+    });
+
     fetchBoardDetails();
     fetchListsAndTasks();
     fetchMembers(); 
@@ -93,7 +96,10 @@ export default function BoardView({ boardId }: { boardId: string }) {
 
     if (uid && uid !== currentUserId) setCurrentUserId(uid);
 
-    const { data } = await supabase.from('board_members').select(`user_id, role, status, profiles ( email, avatar_url )`).eq('board_id', boardId);
+    const { data, error } = await supabase.from('board_members').select(`user_id, role, status, profiles ( email, avatar_url )`).eq('board_id', boardId);
+    // A transient fetch failure (network blip during the 5s poll) must not
+    // kick the user off the board — only act on a successful response.
+    if (error) return;
     const normalizedMembers = (data ?? []).map((member: any) => ({
       user_id: member.user_id,
       role: typeof member.role === 'string' ? member.role.toLowerCase().trim() : 'viewer',
@@ -125,15 +131,6 @@ export default function BoardView({ boardId }: { boardId: string }) {
   const currentUserRole = members.find(m => m.user_id === currentUserId)?.role?.toLowerCase() || 'viewer';
   const canManageBoard = currentUserRole === 'owner';
   const canEditTasks = currentUserRole === 'owner' || currentUserRole === 'member';
-
-  useEffect(() => {
-    if (!currentUserId || members.length === 0) return;
-    const me = members.find(m => m.user_id === currentUserId);
-    if (!me || me.status !== 'accepted') {
-      alert('Your access to this workspace has been revoked or is pending.');
-      window.location.href = '/dashboard';
-    }
-  }, [currentUserId, members]);
 
   const handleInvite = async () => {
     if (!canManageBoard) return alert("Only the board owner can invite members.");
@@ -231,7 +228,7 @@ export default function BoardView({ boardId }: { boardId: string }) {
 
   const handleAssignTask = async (taskId: string, assigneeId: string | null) => {
     if (!canEditTasks) return;
-    setTasks(tasks.map(t => t.id === taskId ? { ...t, assignee_id: assigneeId || undefined } : t));
+    setTasks(tasks.map(t => t.id === taskId ? { ...t, assignee_id: assigneeId } : t));
     await supabase.from('tasks').update({ assignee_id: assigneeId }).eq('id', taskId);
 
     if (assigneeId && assigneeId !== currentUserId) {
@@ -252,6 +249,17 @@ export default function BoardView({ boardId }: { boardId: string }) {
     await supabase.from('tasks').update(updates).eq('id', taskId);
   };
 
+  // Single source of truth for the search/label filter — used both for
+  // rendering (BoardCanvas) and for translating drop indexes in onDragEnd.
+  const taskMatchesFilter = (t: Task) => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      if (!t.content.toLowerCase().includes(query) && !t.description?.toLowerCase().includes(query)) return false;
+    }
+    if (filterLabel && (!t.labels || !t.labels.includes(filterLabel))) return false;
+    return true;
+  };
+
   const onDragEnd = async (result: DropResult) => {
     if (!canEditTasks) { alert("Viewers cannot move cards."); return; }
 
@@ -270,10 +278,16 @@ export default function BoardView({ boardId }: { boardId: string }) {
 
     const draggedTask = tasks.find(t => t.id === draggableId);
     if (!draggedTask) return;
-    const newTasks = Array.from(tasks);
-    newTasks.splice(newTasks.findIndex(t => t.id === draggableId), 1);
+    const newTasks = tasks.filter(t => t.id !== draggableId);
     const destTasks = newTasks.filter(t => t.list_id === destination.droppableId);
-    destTasks.splice(destination.index, 0, { ...draggedTask, list_id: destination.droppableId });
+
+    // destination.index counts only the cards visible under the current
+    // search/label filter, so anchor on the card occupying that slot instead
+    // of indexing into the full (unfiltered) list.
+    const visibleDestTasks = destTasks.filter(taskMatchesFilter);
+    const anchorTask = visibleDestTasks[destination.index];
+    const insertAt = anchorTask ? destTasks.findIndex(t => t.id === anchorTask.id) : destTasks.length;
+    destTasks.splice(insertAt, 0, { ...draggedTask, list_id: destination.droppableId });
     const updatedDestTasks = destTasks.map((task, index) => ({ ...task, position: index }));
     
     if (draggedTask.assignee_id && draggedTask.assignee_id !== currentUserId && destination.droppableId !== source.droppableId) {
@@ -315,8 +329,8 @@ export default function BoardView({ boardId }: { boardId: string }) {
   return (
     <div className={`flex flex-col h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden -m-8 p-8 ${boardBg} ${textColor} transition-all duration-500`}>
       
-      <BoardHeader 
-        boardTitle={boardTitle} boardBg={boardBg} currentUserRole={currentUserRole}
+      <BoardHeader
+        boardTitle={boardTitle} boardBg={boardBg} boardType={boardType} currentUserRole={currentUserRole}
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         filterLabel={filterLabel} setFilterLabel={setFilterLabel}
         members={members} currentUserId={currentUserId} canManageBoard={canManageBoard}
@@ -329,11 +343,11 @@ export default function BoardView({ boardId }: { boardId: string }) {
       />
 
       {boardType === 'snippets' ? (
-        <SnippetCanvas boardId={boardId} canEdit={canEditTasks} currentUserId={currentUserId} />
+        <SnippetCanvas boardId={boardId} canEdit={canEditTasks} currentUserId={currentUserId} searchQuery={searchQuery} />
       ) : (
-        <BoardCanvas 
+        <BoardCanvas
           lists={lists} tasks={tasks} members={members}
-          searchQuery={searchQuery} filterLabel={filterLabel} canEditTasks={canEditTasks}
+          taskMatchesFilter={taskMatchesFilter} canEditTasks={canEditTasks}
           onDragEnd={onDragEnd} handleAssignTask={handleAssignTask} handleAddTask={handleAddTask}
           handleDeleteList={handleDeleteList} handleDeleteTask={handleDeleteTask}
           handleUpdateList={handleUpdateList} handleUpdateTask={handleUpdateTask}

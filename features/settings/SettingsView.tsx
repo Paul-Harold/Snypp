@@ -20,12 +20,16 @@ export default function SettingsView() {
     const getUser = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
-      
-      if (user) {
-        setEmail(user.email || '');
-        if (user.user_metadata?.avatar_url) {
-          setAvatarUrl(user.user_metadata.avatar_url);
-        }
+
+      // Logged-out visitors get sent to login instead of a stuck "Loading..." form
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      setEmail(user.email || '');
+      if (user.user_metadata?.avatar_url) {
+        setAvatarUrl(user.user_metadata.avatar_url);
       }
     };
     getUser();

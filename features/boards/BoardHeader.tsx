@@ -5,6 +5,7 @@ import { useState } from 'react';
 interface BoardHeaderProps {
   boardTitle: string;
   boardBg: string;
+  boardType: string;
   currentUserRole: string;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
@@ -27,7 +28,7 @@ interface BoardHeaderProps {
 }
 
 export default function BoardHeader({
-  boardTitle, boardBg, currentUserRole, searchQuery, setSearchQuery, filterLabel, setFilterLabel,
+  boardTitle, boardBg, boardType, currentUserRole, searchQuery, setSearchQuery, filterLabel, setFilterLabel,
   members, currentUserId, canManageBoard, inviteEmail, setInviteEmail, inviteRole, setInviteRole,
   handleInvite, handleUpdateMemberRole, handleRemoveMember, handleUpdateBackground, handleLeaveBoard, BACKGROUND_OPTIONS, ALL_LABELS
 }: BoardHeaderProps) {
@@ -36,6 +37,8 @@ export default function BoardHeader({
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showTeamMenu, setShowTeamMenu] = useState(false);
 
+  // Labels only exist on kanban cards — snippet boards get search but no label filter
+  const isSnippetBoard = boardType === 'snippets';
   const isDarkBg = boardBg !== 'bg-slate-50';
   const glassPanelClass = isDarkBg ? 'bg-black/20 border-white/10 backdrop-blur-md' : 'bg-white border-slate-200 shadow-sm';
 
@@ -57,11 +60,12 @@ export default function BoardHeader({
           {/* Search */}
           <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${glassPanelClass} focus-within:ring-2 focus-within:ring-blue-500`}>
             <span className="text-sm opacity-60">🔍</span>
-            <input type="text" placeholder="Search cards..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`bg-transparent outline-none text-sm w-32 md:w-40 transition-all font-medium ${isDarkBg ? 'text-white placeholder-white/50' : 'text-slate-900'}`} />
+            <input type="text" placeholder={isSnippetBoard ? 'Search snypps...' : 'Search cards...'} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`bg-transparent outline-none text-sm w-32 md:w-40 transition-all font-medium ${isDarkBg ? 'text-white placeholder-white/50' : 'text-slate-900'}`} />
             {searchQuery && <button onClick={() => setSearchQuery('')} className="opacity-50 hover:opacity-100 text-sm outline-none">✕</button>}
           </div>
 
           {/* Filter */}
+          {!isSnippetBoard && (
           <div className="relative">
             <button onClick={() => { setShowFilterMenu(!showFilterMenu); setShowThemeMenu(false); setShowTeamMenu(false); }} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold border transition shadow-sm ${filterLabel ? 'bg-blue-600 text-white border-blue-600' : glassPanelClass + ' hover:bg-black/30'}`}>
               🏷️ {filterLabel || 'Filter'}
@@ -78,6 +82,7 @@ export default function BoardHeader({
               </div>
             )}
           </div>
+          )}
 
           {/* Theme */}
           {canManageBoard && (
