@@ -3,13 +3,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { Task, Subtask } from './types';
 
-export interface Subtask { id: string; title: string; completed: boolean; }
-export interface Task { 
-  id: string; list_id: string; content: string; position: number; 
-  assignee_id?: string; description?: string; due_date?: string; 
-  story_points?: number; labels?: string[]; subtasks?: Subtask[]; 
-}
+export type { Task, Subtask };
 
 interface TaskModalProps {
   task: Task | null;
@@ -106,7 +102,9 @@ export default function TaskModal({ task, canEditTasks, boardId, onClose, onSave
   const handleSave = async () => {
     if (!canEditTasks) return onClose();
     setIsSaving(true);
-    await onSave(task.id, { description, story_points: storyPoints || undefined, due_date: dueDate || undefined, labels, subtasks });
+    // Cleared fields must be sent as null — supabase-js strips undefined keys
+    // from the update payload, so undefined would silently keep the old value.
+    await onSave(task.id, { description, story_points: storyPoints, due_date: dueDate || null, labels, subtasks });
     setIsSaving(false);
     onClose();
   };
@@ -203,7 +201,7 @@ export default function TaskModal({ task, canEditTasks, boardId, onClose, onSave
                   return (
                     <div key={c.id} className={`flex flex-col gap-1 p-3.5 rounded-2xl max-w-[85%] shadow-sm ${isMe ? 'bg-blue-600 text-white self-end rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 self-start rounded-tl-sm'}`}>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isMe ? 'text-blue-200' : 'text-slate-400'}`}>{isMe ? 'Me' : c.profiles?.email.split('@')[0] || 'User'}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isMe ? 'text-blue-200' : 'text-slate-400'}`}>{isMe ? 'Me' : c.profiles?.email?.split('@')[0] || 'User'}</span>
                         <span className={`text-[9px] ${isMe ? 'text-blue-300' : 'text-slate-300'}`}>{new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <p className="text-sm font-medium leading-relaxed">{c.content}</p>

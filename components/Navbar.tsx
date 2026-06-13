@@ -17,31 +17,37 @@ export default function Navbar() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
+    // The channel is created inside an async init, so the cleanup must come
+    // from the effect itself — a return value inside initNav is discarded.
     const initNav = async () => {
       const { data } = await supabase.auth.getSession();
       const user = data.session?.user;
-      if (user) {
-        setCurrentUser(user);
-        fetchNotifications(user.id);
+      if (!user) return null;
 
-        // Sync auth avatar (e.g. Google OAuth) → profiles table so team icons match
-        const metaAvatar = user.user_metadata?.avatar_url;
-        if (metaAvatar) {
-          const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).single();
-          if (profile && profile.avatar_url !== metaAvatar) {
-            await supabase.from('profiles').update({ avatar_url: metaAvatar }).eq('id', user.id);
-          }
+      setCurrentUser(user);
+      fetchNotifications(user.id);
+
+      // Sync auth avatar (e.g. Google OAuth) → profiles table so team icons match
+      const metaAvatar = user.user_metadata?.avatar_url;
+      if (metaAvatar) {
+        const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).single();
+        if (profile && profile.avatar_url !== metaAvatar) {
+          await supabase.from('profiles').update({ avatar_url: metaAvatar }).eq('id', user.id);
         }
-
-        const channel = supabase.channel(`nav-notifications-${user.id}`)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => {
-            fetchNotifications(user.id);
-          }).subscribe();
-
-        return () => { supabase.removeChannel(channel); };
       }
+
+      return supabase.channel(`nav-notifications-${user.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => {
+          fetchNotifications(user.id);
+        }).subscribe();
     };
-    initNav();
+    const channelPromise = initNav();
+
+    return () => {
+      channelPromise.then(channel => {
+        if (channel) supabase.removeChannel(channel);
+      });
+    };
   }, []);
 
   const fetchNotifications = async (userId: string) => {

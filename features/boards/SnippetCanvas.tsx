@@ -14,9 +14,10 @@ const COLORS = [
   'bg-orange-200'
 ];
 
-export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boardId: string, canEdit: boolean, currentUserId: string | null }) {
+export default function SnippetCanvas({ boardId, canEdit, currentUserId, searchQuery = '' }: { boardId: string, canEdit: boolean, currentUserId: string | null, searchQuery?: string }) {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [paletteId, setPaletteId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSnippets();
@@ -74,6 +75,14 @@ export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boa
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const query = searchQuery.trim().toLowerCase();
+  const visibleSnippets = query
+    ? snippets.filter(s =>
+        s.title?.toLowerCase().includes(query) ||
+        s.content?.toLowerCase().includes(query)
+      )
+    : snippets;
+
   return (
     <div className="w-full h-full pb-12">
       {canEdit && (
@@ -82,9 +91,24 @@ export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boa
         </button>
       )}
 
-      {/* Masonry-style Grid for Sticky Notes */}
+      {snippets.length === 0 ? (
+        <div className="py-20 border-2 border-dashed border-slate-300/50 rounded-3xl flex flex-col items-center justify-center text-center">
+          <div className="text-4xl mb-3">📋</div>
+          <p className="font-bold text-lg opacity-80">No snypps yet</p>
+          <p className="text-sm opacity-60 font-medium mt-1">
+            {canEdit ? 'Click "+ Add New Snypp" to save your first snippet.' : 'Nothing has been added to this board yet.'}
+          </p>
+        </div>
+      ) : visibleSnippets.length === 0 ? (
+        <div className="py-16 text-center">
+          <p className="font-bold text-lg opacity-80">No snypps match your search.</p>
+          <p className="text-sm opacity-60 font-medium mt-1">Try a different keyword or clear the search.</p>
+        </div>
+      ) : (
+
+      // Masonry-style Grid for Sticky Notes
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
-        {snippets.map((snippet) => (
+        {visibleSnippets.map((snippet) => (
           <div 
             key={snippet.id} 
             // Auto-sizing card that grows with content
@@ -102,13 +126,22 @@ export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boa
               />
               
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <button 
-                  onClick={() => handleCopy(snippet.content, snippet.id)} 
+                <button
+                  onClick={() => handleCopy(snippet.content, snippet.id)}
                   className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/40 hover:bg-white/80 text-slate-800 transition-colors"
                   title="Copy Content"
                 >
                   {copiedId === snippet.id ? '✓' : '📋'}
                 </button>
+                {canEdit && (
+                  <button
+                    onClick={() => setPaletteId(paletteId === snippet.id ? null : snippet.id)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/40 hover:bg-white/80 text-slate-800 transition-colors"
+                    title="Change Color"
+                  >
+                    🎨
+                  </button>
+                )}
                 {canEdit && (
                   <button 
                     onClick={() => handleDeleteSnippet(snippet.id)} 
@@ -120,6 +153,20 @@ export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boa
                 )}
               </div>
             </div>
+
+            {/* Color palette — swatches reuse the full COLORS class names so JIT keeps them */}
+            {paletteId === snippet.id && (
+              <div className="flex gap-2 mb-4 shrink-0">
+                {COLORS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => { handleUpdateSnippet(snippet.id, { color: c }); setPaletteId(null); }}
+                    className={`w-6 h-6 rounded-full ${c} border-2 shadow-sm hover:scale-110 transition-transform ${snippet.color === c ? 'border-slate-800' : 'border-white/70'}`}
+                    title={c.replace('bg-', '').replace('-200', '')}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Auto-resizing textarea that expands to fit all content */}
             <FocusLockedInput 
@@ -133,6 +180,7 @@ export default function SnippetCanvas({ boardId, canEdit, currentUserId }: { boa
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
